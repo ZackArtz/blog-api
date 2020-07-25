@@ -21,34 +21,6 @@ type Article struct {
 	UpdatedAt time.Time `gorm:"not null;" json:"updated_at"`
 }
 
-type ArticleResponse struct {
-	*Article
-
-	*User `json:"author,omitempty"`
-}
-
-func NewArticleResponse(db *gorm.DB, article *Article) *ArticleResponse {
-	resp := &ArticleResponse{Article: article}
-	user2 := User{}
-
-	if resp.User == nil {
-		user, _ := user2.GetUserByID(db, article.AuthorID)
-		resp.User = user
-	}
-
-	resp.Article.AuthorID = 0
-
-	return resp
-}
-
-func NewArticleListResponse(db *gorm.DB, articles []Article) *[]ArticleResponse {
-	var list []ArticleResponse
-	for _, article := range articles {
-		list = append(list, *NewArticleResponse(db, &article))
-	}
-	return &list
-}
-
 func (a *Article) Prepare() {
 	a.ID = 0
 	a.Body = html.EscapeString(strings.TrimSpace(a.Body))

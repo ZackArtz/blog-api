@@ -8,14 +8,43 @@ import (
 	"strconv"
 )
 
+type ArticleResponse struct {
+	models.Article
+
+	*models.User `json:"author,omitempty"`
+}
+
+func (s *Server) NewArticleResponse(article models.Article) ArticleResponse {
+	user := &models.User{}
+	user, err := user.GetUserByID(s.DB, article.AuthorID)
+	if err != nil {
+		return ArticleResponse{}
+	}
+	article.AuthorID = 0
+	resp := ArticleResponse{Article: article}
+	resp.User = user
+	return resp
+}
+
 func (s *Server) GetArticles(ctx *fiber.Ctx) {
 	article := models.Article{}
 	articles, err := article.GetAllArticles(s.DB)
+	user := models.User{}
 	if err != nil {
 		utils.Error(ctx, http.StatusUnprocessableEntity, err)
 		return
 	}
-	utils.JSON(ctx, http.StatusOK, models.NewArticleListResponse(s.DB, articles))
+	var resp []ArticleResponse
+	for _, article := range articles {
+		res := ArticleResponse{Article: article}
+		res.User, err = user.GetUserByID(s.DB, article.AuthorID)
+		if err != nil {
+			utils.Error(ctx, http.StatusUnprocessableEntity, err)
+			return
+		}
+		resp = append(resp, res)
+	}
+	utils.JSON(ctx, http.StatusOK, resp)
 }
 
 func (s *Server) CreateArticle(ctx *fiber.Ctx) {
@@ -29,7 +58,7 @@ func (s *Server) CreateArticle(ctx *fiber.Ctx) {
 		utils.Error(ctx, http.StatusBadRequest, err)
 		return
 	}
-	utils.JSON(ctx, http.StatusCreated, models.NewArticleResponse(s.DB, article))
+	utils.JSON(ctx, http.StatusCreated, s.NewArticleResponse(*article))
 }
 
 func (s *Server) GetArticleByID(ctx *fiber.Ctx) {
@@ -45,7 +74,7 @@ func (s *Server) GetArticleByID(ctx *fiber.Ctx) {
 		utils.Error(ctx, http.StatusBadRequest, err)
 		return
 	}
-	utils.JSON(ctx, http.StatusCreated, models.NewArticleResponse(s.DB, article))
+	utils.JSON(ctx, http.StatusCreated, s.NewArticleResponse(*article))
 }
 
 func (s *Server) GetArticleBySlug(ctx *fiber.Ctx) {
@@ -56,7 +85,7 @@ func (s *Server) GetArticleBySlug(ctx *fiber.Ctx) {
 		utils.Error(ctx, http.StatusBadRequest, err)
 		return
 	}
-	utils.JSON(ctx, http.StatusCreated, models.NewArticleResponse(s.DB, article))
+	utils.JSON(ctx, http.StatusCreated, s.NewArticleResponse(*article))
 }
 
 func (s *Server) UpdateArticle(ctx *fiber.Ctx) {
@@ -82,7 +111,7 @@ func (s *Server) UpdateArticle(ctx *fiber.Ctx) {
 		utils.Error(ctx, http.StatusUnprocessableEntity, err)
 		return
 	}
-	utils.JSON(ctx, http.StatusOK, models.NewArticleResponse(s.DB, &updateArticle))
+	utils.JSON(ctx, http.StatusOK, s.NewArticleResponse(updateArticle))
 }
 
 func (s *Server) DeleteArticle(ctx *fiber.Ctx) {
