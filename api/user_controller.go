@@ -61,7 +61,7 @@ func (s *Server) GetUser(ctx *fiber.Ctx) {
 	user := &models.User{}
 	user, err = user.GetUserByID(s.DB, uint32(uid))
 	if err != nil {
-		utils.Error(ctx, http.StatusBadRequest, err)
+		utils.Error(ctx, http.StatusTeapot, err)
 		return
 	}
 	Return(ctx, user)
